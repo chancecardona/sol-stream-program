@@ -1,3 +1,4 @@
+use crate::state::{CreateStreamInput, WithdrawInput};
 use borsh::BorshDeserialize;
 use solana_program::program_error::ProgramError;
 
@@ -14,7 +15,8 @@ pub enum StreamInstruction {
     /// `[signer]` sender account
     /// `[]` receiver account
     /// `[]` Admin account
-    CreateStream,
+    // CreateStream,
+    CreateStream(CreateStreamInput),
 
     /// Withdraw from a stream for receiver
     ///
@@ -22,7 +24,8 @@ pub enum StreamInstruction {
     ///
     /// `[writable]` escrow account, it will hold all necessary info about the trade.
     /// `[signer]` receiver account
-    WithdrawFromStream,
+    // WithdrawFromStream,
+    WithdrawFromStream(WithdrawInput),
 
     /// Close a stream and transfer tokens between sender and receiver.
     ///
@@ -32,4 +35,22 @@ pub enum StreamInstruction {
     /// `[signer]` sender account
     /// `[]` receiver account
     CloseStream,
+}
+
+impl StreamInstruction {
+    pub fn unpack(instruction_data: &[u8]) -> Result<Self, ProgramError> {
+        let (tag, data) = instruction_data
+            .split_first()
+            .ok_or(ProgramError::InvalidInstructionData)?;
+        match tag {
+            1 => Ok(StreamInstruction::CreateStream(
+                CreateStreamInput::try_from_slice(data)?,
+            )),
+            2 => Ok(StreamInstruction::WithdrawFromStream(
+                WithdrawInput::try_from_slice(data)?,
+            )),
+            3 => Ok(StreamInstruction::CloseStream),
+            _ => Err(ProgramError::InvalidInstructionData),
+        }
+    }
 }
